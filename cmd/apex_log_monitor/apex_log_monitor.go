@@ -39,7 +39,7 @@ func configureLogs(logLevel string) {
 
 func realTimeMonitor(flags common_flags.CommonFlags ) {
 	////The apex actually brings everything back. Slowly
-	duration := Duration(flags.Delay) * Second
+	duration := Duration(*flags.Delay) * Second
 	ticker := NewTicker(duration)
 	quit := make(chan struct{})
 
@@ -61,8 +61,12 @@ func realTimeMonitor(flags common_flags.CommonFlags ) {
 				}
 
 				log.Trace("Fetching another record")
-				tick := tick.GetTickRecord(*apexStatus)
-				ic.WriteRecord(tick)
+				tick := tick.GetTickLineFromApexStatus(*apexStatus)
+				if *flags.DisableDataSource {
+					log.Debug(tick)
+				} else {
+					ic.WriteRecord(tick)
+				}
 
 				//fmt.Print(tick)
 

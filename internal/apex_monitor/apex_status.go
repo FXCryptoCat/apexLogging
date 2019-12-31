@@ -3,6 +3,7 @@ package apex_monitor
 //The JSON returned from the "http://YOURIP/rest/status?_=TIMEINMILLIS" that is
 //called when loading the main dashboard.
 type ApexStatus struct {
+	//System is unused at this time
 	System struct {
 		Hostname string `json:"hostname"`
 		Software string `json:"software"`
@@ -15,6 +16,7 @@ type ApexStatus struct {
 		Timezone string `json:"timezone"`
 		Date     int    `json:"date"`
 	} `json:"system"`
+	//Modules is unused at this time
 	Modules []struct {
 		Abaddr  int    `json:"abaddr"`
 		Hwtype  string `json:"hwtype"`
@@ -31,6 +33,7 @@ type ApexStatus struct {
 		Extra   struct {
 		} `json:"extra"`
 	} `json:"modules"`
+	//Nstat is unused at this time
 	Nstat struct {
 		Dhcp           bool     `json:"dhcp"`
 		Hostname       string   `json:"hostname"`
@@ -52,14 +55,30 @@ type ApexStatus struct {
 		UpdateFirmware bool     `json:"updateFirmware"`
 		LatestFirmware string   `json:"latestFirmware"`
 	} `json:"nstat"`
+	//Feed is unused at this time
 	Feed struct {
 		Name   int `json:"name"`
 		Active int `json:"active"`
 	} `json:"feed"`
+	//Power is unused at this time
 	Power struct {
 		Failed   int `json:"failed"`
 		Restored int `json:"restored"`
 	} `json:"power"`
+	//The positions in the Status array have different meanings for
+	//different types.
+	// type: variable
+	//		Pos 0: Name of the variable
+	//		Pos 2: Status OK
+	// type: Alert
+	//		Pos 0: Stat ON|AON|OFF|AOFF
+	//		POS 2: Status OK
+	// type: Outlet
+	//		Pos 0: State ON|AON|OFF|AOFF
+	//		POS 2: Status OK
+	// There are others. You get the point.
+	// did: the id from the apex, 9_1, 9_2 etc.
+	// name: the name you assigned it
 	Outputs []struct {
 		Status []string `json:"status"`
 		Name   string   `json:"name"`
@@ -68,12 +87,17 @@ type ApexStatus struct {
 		ID     int      `json:"ID"`
 		Did    string   `json:"did"`
 	} `json:"outputs"`
+	// did: the id from the apex, 9_1, 9_2 etc.
+	// name: the name you assigned it
+	// type: Tem, Ph, ...
+	// value: a float64 of the measurement.
 	Inputs []struct {
 		Did   string  `json:"did"`
 		Type  string  `json:"type"`
 		Name  string  `json:"name"`
 		Value float64 `json:"value"`
 	} `json:"inputs"`
+	//Don't care
 	Link struct {
 		LinkState int    `json:"linkState"`
 		LinkKey   string `json:"linkKey"`

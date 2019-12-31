@@ -1,0 +1,8 @@
+influx_user: user
+influx_password: pass
+influx_ip: 99.99.99.99
+
+apex_cookie: 09ABKDS9
+apex_ip: 88.88.88.88
+log_level: warn
+delay: 30

@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type DataSource interface {
+	WriteRecord(tickline string)
+	WriteRecords(ticklines []string)
+}
+
 //Used for posting messages directly to an influx db.
 //TODO: Use interface to allow us to write to different dbs
 type InfluxClient struct {

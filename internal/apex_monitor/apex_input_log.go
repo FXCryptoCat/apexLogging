@@ -4,13 +4,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//The ApexInputLog and Output Log only differ by a little. We convert all of the
-//ApexOutputLog to ApexInputLog to make logging easier. Use the ApexLog alias
-//to ensure we hav the right thing.
-type ApexLog ApexInputLog
 
-//The Input Log structure returned from the ilog call
-//used when loading Chart page on the classic dashboard.
+
+//The data structure returned from an ilog request.
+//This is aliased to ApexLog for more generic processing. The
+//ApexOutputLog can be converted to this format with no loss of
+//accuracy. Makes life easier later.
 
 type ApexInputLog struct {
 	Hostname string `json:"hostname"`

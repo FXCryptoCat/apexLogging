@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/william1034/apexLogging/internal/utils"
 	"os"
 	"time"
 )
@@ -52,9 +53,9 @@ func (asyncClient *AsyncApexMonitor) getLog(logName string, fromTime time.Time, 
 }
 
 func (asyncClient *AsyncApexMonitor) getOneDayApexLog(logName string, fromTime time.Time, currentTimeSeconds int64, logChannel chan ApexLog)  {
-	uri := fmt.Sprintf("%s/rest/%s?days=%d&sdate=%d&_=%d", asyncClient.baseUri, logName, 1, FormatDate(fromTime), currentTimeSeconds)
+	uri := fmt.Sprintf("%s/rest/%s?days=%d&sdate=%d&_=%d", asyncClient.baseUri, logName, 1, utils.FormatDate(fromTime), currentTimeSeconds)
 
-	data, _ := RequestWithCookies(uri, asyncClient.cookie)
+	data, _ := apexHttpRequestWithCookieAuth(uri, asyncClient.cookie)
 
 	//Each summary is for one day
 	apexSummary := ApexComboLog{}

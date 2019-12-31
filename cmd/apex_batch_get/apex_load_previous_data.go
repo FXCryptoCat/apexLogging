@@ -31,8 +31,11 @@ func main() {
 			fmt.Println("-- DONE --")
 			break
 		} else {
-			lines := tick.GetTickRecordsFromIlog(apexLog)
-			ic.WriteRecords(lines)
+			lines := tick.GetTickRecordsFromApexLog(apexLog)
+
+			if !*flags.DisableDataSource {
+				ic.WriteRecords(lines)
+			}
 			fmt.Println(lines)
 		}
 

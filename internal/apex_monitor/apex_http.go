@@ -8,6 +8,16 @@ import (
 	"strconv"
 )
 
+type apexAuthResponse struct {
+	ConnectSid string `json:"connect.sid"`
+}
+
+type apexAuthRequest struct {
+	Login      string `json:"login"`
+	Password   string `json:"password"`
+	RememberMe string `json:"remember_me"`
+}
+
 func apexHttpRequestWithCookieAuth(url string, apexCookie string) (b []byte, err error) {
 	log.Trace("requestWithCookies")
 	req, err := http.NewRequest("GET", url, nil)
@@ -15,6 +25,9 @@ func apexHttpRequestWithCookieAuth(url string, apexCookie string) (b []byte, err
 		log.Error("Failed request with cookies.", err)
 		return
 	}
+
+	//Close the connection when done
+	req.Close = true
 	req.AddCookie(&http.Cookie{Name: "connect.sid", Value: apexCookie})
 
 	client := &http.Client{}
@@ -25,7 +38,7 @@ func apexHttpRequestWithCookieAuth(url string, apexCookie string) (b []byte, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.WithField("Response", resp.Body).Warn("Request with cookies status code not 200.", err)
+		log.WithField("Status", resp.StatusCode).WithField("Response", resp.Body).Warn("Request with cookies status code not 200.", err)
 		err = errors.New(url +
 			"\nresp.StatusCode: " + strconv.Itoa(resp.StatusCode))
 		return nil, err

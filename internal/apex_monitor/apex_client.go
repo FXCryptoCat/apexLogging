@@ -1,25 +1,80 @@
 package apex_monitor
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/william1034/apexLogging/internal/utils"
+	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
 
 type ApexClient struct {
 	//The URI to your apex.
+	ip string
 	baseUri string
 
 	//Cookie required for Apex. See README
 	cookie string
+
+	//Username/Password to log into APEX
+	username string
+	password string
 }
 
-func NewApexMonitor(uri string, cookie string) *ApexClient {
-	monitor := ApexClient{baseUri: uri, cookie: cookie}
+func NewApexMonitor(ip string,  username string, password string) *ApexClient {
+	monitor := ApexClient{ip: ip, username:username,password:password}
+	monitor.baseUri = `http://` + ip
+	monitor.login()
 	return &monitor
+}
+
+
+//POST:  http://192.168.20.72/rest/login
+//PAYLOAD: {"login":"username","password":"password","remember_me":false}
+func (apexClient *ApexClient)login() {
+	tr := &http.Transport{}
+	timeout := time.Duration(15 * time.Second)
+	client := &http.Client{Transport:tr, Timeout:timeout}
+
+	uri := url.URL{
+		Scheme:     "http",
+		Path:       "rest/login",
+		User:       nil,
+		Host:     	apexClient.ip,
+		ForceQuery: false,
+	}
+
+	formAuthRequest := apexAuthRequest {
+		Login: apexClient.username,
+		Password: apexClient.password,
+		RememberMe: "false",
+	}
+	formData, _ := json.Marshal(formAuthRequest)
+	resp, err := client.Post(uri.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte(formData)))
+	if err != nil {
+		log.Error(err)
+		log.Fatal("Unable to authenticate.")
+
+	}
+
+	//TODO: Better error checking here
+
+	defer resp.Body.Close()
+	//response, _ := ioutil.ReadAll(resp.Body)
+	var result apexAuthResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	log.WithField("RespBody", result.ConnectSid).Debug("Auth response")
+
+	apexClient.cookie = result.ConnectSid
+}
+
+//This will simply kill the process if reauth doesn't fix the issue
+func (apexClient *ApexClient) ReAuth()  {
+	apexClient.login()
 }
 
 //Retrieve the status of the apex inputs and outputs at a given time.

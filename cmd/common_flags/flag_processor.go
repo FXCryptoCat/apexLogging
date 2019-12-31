@@ -12,18 +12,21 @@ type CommonFlags struct {
 	Delay             *int   `yaml:"delay,omitempty"`
 	LogLevel          string `yaml:"log_level,omitempty"`
 	ApexIp            string `yaml:"apex_ip,omitempty"`
-	ApexCookie        string `yaml:"apex_cookie,omitempty"`
+	ApexUserName      string `yaml:"apex_username,omitempty"`
+	ApexPassword      string `yaml:"apex_password,omitempty"`
 	InfluxUser        string `yaml:"influx_user,omitempty"`
 	InfluxPassword    string `yaml:"influx_password,omitempty"`
 	InfluxIp          string `yaml:"influx_ip,omitempty"`
-	DisableDataSource *bool   `yaml:"disableDataSource,omitempty"`
+	DisableDataSource *bool  `yaml:"disableDataSource,omitempty"`
 }
 
 func GetFlags() CommonFlags {
 	delayPtr := flag.Int("delay", 30, `delay seconds between requests to apex`)
 	logLevel := flag.String("loglevel", "warn", `trace, debug, info, warn, error, fatal`)
 	apexIp := flag.String("apexIp", "", `The IP address for your APEX`)
-	apexCookie := flag.String("apexCookie", "", `The cookie used to authenticate your requests`)
+	//apexCookie := flag.String("apexCookie", "", `The cookie used to authenticate your requests`)
+	apexUserName := flag.String("apexUserName", "", `The apex user name`)
+	apexPassword := flag.String("apexPassword", "", `The apex password`)
 	influxUser := flag.String("influxUser", "", `InfluxDb User Name`)
 	influxPassword := flag.String("influxPassword", "", `InfluxDb Password`)
 	influxIp := flag.String("influxIp", "", `InfluxDb IP`)
@@ -32,7 +35,7 @@ func GetFlags() CommonFlags {
 
 	flag.Parse()
 
-	allParametersSpecified := len(*apexIp) > 0 || len(*apexCookie) > 0 || len(*influxUser) > 0 || len(*influxPassword) > 0 || len(*influxIp) > 0
+	allParametersSpecified := len(*apexIp) > 0 || len(*apexUserName) > 0 || len(*apexPassword) > 0 || len(*influxUser) > 0 || len(*influxPassword) > 0 || len(*influxIp) > 0
 	if len(*configFile) == 0 && !allParametersSpecified {
 		log.Error("You must specify a config file or all of the command line arguments)")
 		flag.Usage()
@@ -43,13 +46,14 @@ func GetFlags() CommonFlags {
 	//Set any commandline arguments and override them with the conifg file. They can be mixed
 	//config file takes precedence.
 	commonFlags := CommonFlags{
-		Delay:          delayPtr,
-		LogLevel:       *logLevel,
-		ApexIp:         *apexIp,
-		ApexCookie:     *apexCookie,
-		InfluxUser:     *influxUser,
-		InfluxPassword: *influxPassword,
-		InfluxIp:       *influxIp,
+		Delay:             delayPtr,
+		LogLevel:          *logLevel,
+		ApexIp:            *apexIp,
+		ApexUserName:      *apexUserName,
+		ApexPassword:      *apexPassword,
+		InfluxUser:        *influxUser,
+		InfluxPassword:    *influxPassword,
+		InfluxIp:          *influxIp,
 		DisableDataSource: disableDataSource,
 	}
 
@@ -91,8 +95,11 @@ func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 	if len(flags.ApexIp) > 0 {
 		commonFlags.ApexIp = flags.ApexIp
 	}
-	if len(flags.ApexCookie) > 0 {
-		commonFlags.ApexCookie = flags.ApexCookie
+	if len(flags.ApexUserName) > 0 {
+		commonFlags.ApexUserName = flags.ApexUserName
+	}
+	if len(flags.ApexPassword) > 0 {
+		commonFlags.ApexPassword = flags.ApexPassword
 	}
 	if len(flags.InfluxUser) > 0 {
 		commonFlags.InfluxUser = flags.InfluxUser
@@ -106,6 +113,5 @@ func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 	if flags.DisableDataSource != nil {
 		commonFlags.DisableDataSource = flags.DisableDataSource
 	}
-
 
 }

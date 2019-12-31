@@ -43,7 +43,7 @@ func realTimeMonitor(flags common_flags.CommonFlags ) {
 	ticker := NewTicker(duration)
 	quit := make(chan struct{})
 
-	apexClient := apex_monitor.NewApexMonitor("http://" + flags.ApexIp, flags.ApexCookie)
+	apexClient := apex_monitor.NewApexMonitor(flags.ApexIp, flags.ApexUserName, flags.ApexPassword)
 	ic := influx.NewInfluxClient(flags.InfluxIp, flags.InfluxUser, flags.InfluxPassword)
 
 	go func() {
@@ -57,6 +57,9 @@ func realTimeMonitor(flags common_flags.CommonFlags ) {
 					fmt.Println(err)
 					//Sleep for a few seconds before continuing....
 					Sleep(Millisecond * 5000)
+
+					//Try to reauth
+					apexClient.ReAuth()
 					continue
 				}
 

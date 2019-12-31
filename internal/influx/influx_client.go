@@ -1,12 +1,13 @@
 package influx
 
 import (
-	"bytes"
 	"crypto/tls"
-	"github.com/sirupsen/logrus"
-	"net/http"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/winterssy/sreq"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type DataSource interface {
@@ -17,13 +18,18 @@ type DataSource interface {
 //Used for posting messages directly to an influx db.
 //TODO: Use interface to allow us to write to different dbs
 type InfluxClient struct {
-	influxHost string
-	influxUser string
-	influxPassword string
+	influxHost       string
+	influxUser       string
+	influxPassword   string
 }
 
 func NewInfluxClient(host string, user string, password string) *InfluxClient {
-	i := InfluxClient{influxHost:host,influxUser:user,influxPassword:password}
+	i := InfluxClient{influxHost: host, influxUser: user, influxPassword: password}
+
+	timeout := 10 * time.Second
+	sreq.SetTLSClientConfig( &tls.Config{InsecureSkipVerify: true})
+	sreq.SetTimeout(timeout)
+
 	return &i
 }
 
@@ -38,13 +44,9 @@ func (client *InfluxClient) WriteRecords(ticklines []string) {
 	client.postData(tickData)
 }
 
+
 func (client *InfluxClient) postData(tickData string) {
-	logrus.Trace("InfluxClient::postData")
-	//logrus.Debug(tickData)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	influxEndPoint := &http.Client{Transport: tr}
+	log.Trace("InfluxClient::postData")
 
 	uri := url.URL{
 		Scheme:     "https",
@@ -53,17 +55,25 @@ func (client *InfluxClient) postData(tickData string) {
 		Host:       client.influxHost,
 		ForceQuery: false,
 	}
-
 	q := uri.Query()
-	q.Set("db", "mydb")  //<<---- Is this automatically created. If not do it.
+	q.Set("db", "mydb") //<<---- Is this automatically created. If not do it.
 	q.Set("u", client.influxUser)
 	q.Set("p", client.influxPassword)
 	uri.RawQuery = q.Encode()
 
-	resp, err := influxEndPoint.Post(uri.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte(tickData)))
+
+
+	resp, err := sreq.
+		Post(uri.String(),
+			sreq.WithContent([]byte(tickData))).Text()
+	fmt.Println(resp)
 	if err != nil {
-		logrus.Fatal("Unable to transmit to influxdb.", err)
+		log.Fatal("Unable to transmit to influxdb.", err)
 	}
-	defer resp.Body.Close()
+
+	//the sreq client must automatically close the response. Using go/http even forcing
+	//the body to close was not reducing the file count on my raspberry.
+	//use 'lsof -i PID | wc -l' to see how many connections are open.
+	//defer resp.Body.Close()
 
 }

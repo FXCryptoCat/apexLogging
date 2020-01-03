@@ -2,10 +2,13 @@ package common_flags
 
 import (
 	"flag"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"os/user"
+	"strconv"
 )
 
 type CommonFlags struct {
@@ -18,20 +21,31 @@ type CommonFlags struct {
 	InfluxPassword    string `yaml:"influx_password,omitempty"`
 	InfluxIp          string `yaml:"influx_ip,omitempty"`
 	DisableDataSource *bool  `yaml:"disableDataSource,omitempty"`
+	Install           *bool  `yaml:"install,omitempty"`
+	Quiet             *bool  `yaml:"quiet,omitempty"`
+	LogFile           string `yaml:"log,omitempty"`
+	Gid               *int   `yaml:"Gid,omitempty"`
+	Uid               *int   `yaml:"Uid,omitempty"`
+	ExecDir           string `yaml:"execDir,omitempty"`
+	OsUserName        string `yaml:"userName,omitempty"`
 }
 
 func GetFlags() CommonFlags {
 	delayPtr := flag.Int("delay", 30, `delay seconds between requests to apex`)
 	logLevel := flag.String("loglevel", "warn", `trace, debug, info, warn, error, fatal`)
 	apexIp := flag.String("apexIp", "", `The IP address for your APEX`)
-	//apexCookie := flag.String("apexCookie", "", `The cookie used to authenticate your requests`)
 	apexUserName := flag.String("apexUserName", "", `The apex user name`)
 	apexPassword := flag.String("apexPassword", "", `The apex password`)
 	influxUser := flag.String("influxUser", "", `InfluxDb User Name`)
 	influxPassword := flag.String("influxPassword", "", `InfluxDb Password`)
 	influxIp := flag.String("influxIp", "", `InfluxDb IP`)
-	configFile := flag.String("configFile", "", `Config file. Overrides command line settings`)
+	configFile := flag.String("config", "", `Config file. Overrides command line settings`)
 	disableDataSource := flag.Bool("disableDataSource", false, `Disables writes to the data source`)
+	install := flag.Bool("install", false, `Install as a service. The command line arguments, or specified config file, will be used to populate the config file.`)
+	quiet := flag.Bool("quiet", false, `Answers any prompts with a default value.`)
+	logFile := flag.String("log", "", `Log file. If not specified stdout will be used`)
+	execDir := flag.String("execDir", "/usr/bin", `Location where Install will copy exec and config file. Default /usr/bin`)
+	osUserName := flag.String("osUserName", "", `User name to run service as, only used by install`)
 
 	flag.Parse()
 
@@ -55,21 +69,56 @@ func GetFlags() CommonFlags {
 		InfluxPassword:    *influxPassword,
 		InfluxIp:          *influxIp,
 		DisableDataSource: disableDataSource,
+		Install:           install,
+		LogFile:           *logFile,
+		Quiet:             quiet,
+		ExecDir:           *execDir,
+		OsUserName:        *osUserName,
 	}
 
 	if len(*configFile) > 0 {
 		loadConfigFile(*configFile, &commonFlags)
 	}
+	setDefaults(&commonFlags)
 
-	if commonFlags.Delay == nil {
-		*delayPtr = 60
-	}
-	if len(commonFlags.LogLevel) == 0 {
-		*logLevel = "warn"
-	}
+
 	//TODO: More validation
 
 	return commonFlags
+}
+
+func setDefaults(commonFlags *CommonFlags) {
+	if commonFlags.Delay == nil {
+		*commonFlags.Delay = 60
+	}
+	if len(commonFlags.LogLevel) == 0 {
+		commonFlags.LogLevel = "warn"
+	}
+
+	if commonFlags.Install != nil && *commonFlags.Install{
+		//Get the user information for installation
+		var u *user.User
+		var err error
+		if len(commonFlags.OsUserName) == 0 {
+			u, err = user.Current()
+		} else {
+			u, err = user.Lookup(commonFlags.OsUserName)
+		}
+		if err != nil {
+			fmt.Println("Unable to load information for user.", err)
+			log.WithError(err).Fatal("Unable to load information for user.")
+		}
+
+		commonFlags.OsUserName = u.Name
+		*commonFlags.Uid, _ = strconv.Atoi(u.Uid)
+		*commonFlags.Gid, _ = strconv.Atoi(u.Gid)
+
+		//Set the location of the executable
+		if len(commonFlags.ExecDir) == 0 {
+			commonFlags.ExecDir = `/usr/bin`
+		}
+
+	}
 }
 
 //Assumes it is in the local directory
@@ -112,6 +161,30 @@ func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 	}
 	if flags.DisableDataSource != nil {
 		commonFlags.DisableDataSource = flags.DisableDataSource
+	}
+
+	if flags.Quiet != nil {
+		commonFlags.Quiet = flags.Quiet
+	}
+
+	if len(flags.LogFile) > 0 {
+		commonFlags.LogFile = flags.LogFile
+	}
+
+	if flags.Uid != nil && *flags.Uid != -1 {
+		commonFlags.Uid = flags.Uid
+	}
+
+	if flags.Gid != nil && *flags.Gid != -1 {
+		commonFlags.Gid = flags.Gid
+	}
+
+	if len(flags.ExecDir) > 0 {
+		commonFlags.ExecDir = flags.ExecDir
+	}
+
+	if len(flags.OsUserName) > 0 {
+		commonFlags.OsUserName = flags.OsUserName
 	}
 
 }

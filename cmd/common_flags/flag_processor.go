@@ -28,6 +28,7 @@ type CommonFlags struct {
 	Uid               *int   `yaml:"Uid,omitempty"`
 	ExecDir           string `yaml:"execDir,omitempty"`
 	OsUserName        string `yaml:"userName,omitempty"`
+	TickLogFile       string `yaml:"tickLogFile,omitempty"`
 }
 
 func GetFlags() CommonFlags {
@@ -46,6 +47,7 @@ func GetFlags() CommonFlags {
 	logFile := flag.String("log", "", `Log file. If not specified stdout will be used`)
 	execDir := flag.String("execDir", "/usr/bin", `Location where Install will copy exec and config file. Default /usr/bin`)
 	osUserName := flag.String("osUserName", "", `User name to run service as, only used by install`)
+	tickLogFile := flag.String("tickLogFile", "", `Where to store tick data locally (Optional)`)
 
 	flag.Parse()
 
@@ -74,6 +76,7 @@ func GetFlags() CommonFlags {
 		Quiet:             quiet,
 		ExecDir:           *execDir,
 		OsUserName:        *osUserName,
+		TickLogFile:       *tickLogFile,
 	}
 
 	if len(*configFile) > 0 {
@@ -81,12 +84,13 @@ func GetFlags() CommonFlags {
 	}
 	setDefaults(&commonFlags)
 
-
 	//TODO: More validation
 
 	return commonFlags
 }
 
+//Create default configuration options where necessary. This is mostly for configuring
+//the install process.
 func setDefaults(commonFlags *CommonFlags) {
 	if commonFlags.Delay == nil {
 		*commonFlags.Delay = 60
@@ -95,7 +99,7 @@ func setDefaults(commonFlags *CommonFlags) {
 		commonFlags.LogLevel = "warn"
 	}
 
-	if commonFlags.Install != nil && *commonFlags.Install{
+	if commonFlags.Install != nil && *commonFlags.Install {
 		//Get the user information for installation
 		var u *user.User
 		var err error
@@ -121,7 +125,7 @@ func setDefaults(commonFlags *CommonFlags) {
 	}
 }
 
-//Assumes it is in the local directory
+//Assumes the config file is in the same directory as the binary.
 func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 	yamlFile, err := ioutil.ReadFile("./" + fileName)
 	if err != nil {
@@ -134,7 +138,9 @@ func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 
-	//Combine the flags - one liners would be nice
+	//Combine the command line parameters with the config file parameters.
+	//The config file parameters win.
+	//NOTE: Should it be the other way around
 	if flags.Delay != nil {
 		commonFlags.Delay = flags.Delay
 	}
@@ -162,29 +168,25 @@ func loadConfigFile(fileName string, commonFlags *CommonFlags) {
 	if flags.DisableDataSource != nil {
 		commonFlags.DisableDataSource = flags.DisableDataSource
 	}
-
 	if flags.Quiet != nil {
 		commonFlags.Quiet = flags.Quiet
 	}
-
 	if len(flags.LogFile) > 0 {
 		commonFlags.LogFile = flags.LogFile
 	}
-
 	if flags.Uid != nil && *flags.Uid != -1 {
 		commonFlags.Uid = flags.Uid
 	}
-
 	if flags.Gid != nil && *flags.Gid != -1 {
 		commonFlags.Gid = flags.Gid
 	}
-
 	if len(flags.ExecDir) > 0 {
 		commonFlags.ExecDir = flags.ExecDir
 	}
-
 	if len(flags.OsUserName) > 0 {
 		commonFlags.OsUserName = flags.OsUserName
 	}
-
+	if len(flags.TickLogFile) > 0 {
+		commonFlags.TickLogFile = flags.TickLogFile
+	}
 }

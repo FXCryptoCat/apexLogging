@@ -13,7 +13,6 @@ import (
 
 
 func main() {
-
 	flags := common_flags.GetFlags()
 	configureLogs(flags.LogLevel)
 

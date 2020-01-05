@@ -4,7 +4,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/william1034/apexLogging/internal/apex_monitor"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -12,7 +14,7 @@ import (
 //apex, type = {TYPE} {MeasurementName, Value} {MeasurementName, Value}... {TimeInNanoSeconds}
 
 //Gets  list of tick records (1 per input)
-func GetTickLineFromApexStatus(apexStatus apex_monitor.ApexStatus) string {
+func GetTickLineFromApexStatus(apexStatus apex_monitor.ApexStatus, tickLogFile string) string {
 	log.Trace("GetTickLineFromApexStatus")
 	var inputRecords = apexStatus.Inputs
 	line := ""
@@ -45,12 +47,15 @@ func GetTickLineFromApexStatus(apexStatus apex_monitor.ApexStatus) string {
 	nanoTime := SecToNanoSeconds(int64(apexStatus.System.Date))
 	//BUG: TODO: The type is always "temp" fix it.
 	line = fmt.Sprintf("apex,type=temp %s %d\n", line, nanoTime)
+	if len(tickLogFile ) > 0 {
+		appendToFile(tickLogFile, []string{line})
+	}
 	return line
 }
 
 //The ApexLog contains records with different times. Each time
 //requires its own line.
-func GetTickRecordsFromApexLog(apexLog apex_monitor.ApexLog) []string {
+func GetTickRecordsFromApexLog(apexLog apex_monitor.ApexLog, tickLogFile string) []string {
 	log.Trace("GetTickRecordsFromApexLog")
 	var lines []string
 	for _, record := range apexLog.Record {
@@ -61,6 +66,10 @@ func GetTickRecordsFromApexLog(apexLog apex_monitor.ApexLog) []string {
 		}
 		line = fmt.Sprintf("apex,type=temp %s %d", line, SecToNanoSeconds(record.Date))
 		lines = append(lines, line)
+	}
+
+	if len(tickLogFile ) > 0 {
+		appendToFile(tickLogFile, lines)
 	}
 	//log.Debugf("GetTickRecordsFromApexLog lines: %v\n", lines)
 	return lines
@@ -78,4 +87,18 @@ func addMeasurementToTickLine(line string, name string, value interface{}) strin
 		line = fmt.Sprintf("%s,%s=%v", line, name, value)
 	}
 	return line
+}
+
+
+func appendToFile(tickLogFile string, lines []string) {
+	f, err := os.OpenFile(tickLogFile,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	l := strings.Join(lines, "\n")
+	if _, err := f.WriteString(l); err != nil {
+		log.Fatal(err)
+	}
 }

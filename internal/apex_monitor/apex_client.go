@@ -18,6 +18,7 @@ type ApexClient struct {
 	baseUri string
 
 	//Cookie required for Apex. See README
+	//This is retrieved by logging in with the username/password provided to the app.
 	cookie string
 
 	//Username/Password to log into APEX
